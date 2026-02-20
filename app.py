@@ -3,79 +3,63 @@ import streamlit as st
 # Configurazione pagina
 st.set_page_config(page_title="Rugni Debt Manager", layout="wide")
 
-# --- CSS INIEZIONE: CONTRASTO MASSIMO E FIX COLORI ---
+# --- CSS DEFINITIVO: PULIZIA TOTALE E CONTRASTO ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 
-    /* 1. FORZATURA LIGHT MODE PER MOBILE */
-    [data-testid="stAppViewContainer"], [data-testid="stHeader"], .main, html, body {
+    /* 1. RESET: Rimuove margini, header e 'gradini' */
+    .block-container { padding-top: 1rem !important; padding-bottom: 0rem !important; }
+    [data-testid="stHeader"] { display: none; }
+    div[data-testid="stVerticalBlock"] { gap: 0rem !important; }
+    
+    /* 2. FORZATURA LIGHT MODE (Anti-Dark Mode cellulare) */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background-color: #f8f9fa !important;
+        color: #000000 !important;
     }
 
-    /* 2. TITOLI E SOTTOTITOLI: NERO E BLU INTENSO (ALTA VISIBILITÀ) */
-    h1 {
-        color: #1a73e8 !important; /* Blu Google */
-        font-weight: 800 !important;
+    /* 3. TITOLI E TESTI: Contrasto Massimo */
+    h1 { color: #1a73e8 !important; font-weight: 800 !important; margin-bottom: 20px !important; }
+    h3 { color: #000000 !important; font-weight: 700 !important; margin-top: 30px !important; margin-bottom: 15px !important; border-bottom: 2px solid #1a73e8; padding-bottom: 5px; }
+    p, label, span, .stMarkdown p, .stWidgetLabel p { color: #000000 !important; font-weight: 600 !important; }
+
+    /* 4. CARD PULITE (Solo per Metric e Risultati) */
+    div[data-testid="stMetric"], .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider {
+        background-color: #ffffff !important;
+        border: 1px solid #dadce0 !important;
+        border-radius: 8px !important;
+        padding: 15px !important;
+        box-shadow: 0 1px 2px rgba(60,64,67,0.3) !important;
         margin-bottom: 15px !important;
     }
-    h2, h3, .stMarkdown h2, .stMarkdown h3 {
-        color: #000000 !important; /* Nero Puro per i titoli di sezione */
-        font-weight: 700 !important;
-        margin-top: 30px !important;
-        border-bottom: 2px solid #1a73e8;
-        padding-bottom: 5px;
-    }
 
-    /* 3. TESTO GENERALE: NERO PER LEGGIBILITÀ */
-    p, label, span, .stMarkdown p, .stWidgetLabel p {
-        color: #000000 !important; 
-        font-weight: 600 !important;
-    }
-
-    /* 4. BANNER MOBILE: TESTO BIANCO SU BLU */
-    .blue-info-box {
-        padding: 20px;
+    /* 5. BANNER MOBILE */
+    .mobile-hint {
         background-color: #1a73e8 !important;
-        border-radius: 12px;
-        margin-bottom: 25px;
-    }
-    .blue-info-box span {
         color: #ffffff !important;
-        font-weight: 700 !important;
-        font-size: 16px !important;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 20px;
+        font-weight: 700;
     }
 
-    /* 5. CARD BIANCHE */
-    div.stMetric, .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, [data-testid="stVerticalBlock"] > div {
-        background-color: #ffffff !important;
-        border: 2px solid #dadce0 !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-    }
-
-    /* 6. SCONTI (METRICHE) */
-    [data-testid="stMetricValue"] {
-        color: #1a73e8 !important;
-        font-weight: 800 !important;
-    }
+    /* 6. METRICHE (SCONTI) */
+    [data-testid="stMetricValue"] { color: #1a73e8 !important; font-weight: 800 !important; font-size: 35px !important; }
+    
+    /* 7. BOTTONI */
+    .stButton>button { background-color: #1a73e8 !important; color: white !important; border-radius: 4px !important; font-weight: 700 !important; border: none !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- AVVISO MOBILE ---
-st.markdown("""
-    <div class="blue-info-box">
-        <span>
-            📱 CONSIGLIO MOBILE: Se non vedi il menu laterale, clicca l'icona con le tre linee (&equiv;) in alto a sinistra.
-        </span>
-    </div>
-    """, unsafe_allow_html=True)
+# --- BANNER MOBILE ---
+st.markdown('<div class="mobile-hint">📱 MENU IMPOSTAZIONI: Clicca l\'icona &equiv; in alto a sinistra</div>', unsafe_allow_html=True)
 
-# --- TITOLO PRINCIPALE ---
 st.title("🛡️ Rugni Debt Management")
 
 # --- SIDEBAR ---
-st.sidebar.markdown("## ⚙️ Configurazione")
+st.sidebar.markdown("### ⚙️ Configurazione")
 asset_input = st.sidebar.text_input("Nome Asset", value="FLO/2").upper()
 num_pratiche = st.sidebar.number_input("N. Pratiche", min_value=1, value=1)
 proc = st.sidebar.selectbox("Tipo Procedura", ["Classic Negotiation", "Behavioral Negotiation"])
@@ -93,7 +77,7 @@ elif asset_input in p3_assets: portfolio = "P3"
 elif asset_input in p2dm_assets: portfolio = "P2DM"
 else: portfolio = "P1"
 
-# --- INPUT DEBITI ---
+# --- SEZIONE DEBITI ---
 st.subheader("📋 Inserimento Debiti Individuali")
 lista_debiti_orig = []
 cols_in = st.columns(num_pratiche)
@@ -121,7 +105,6 @@ elif portfolio == "P2DM":
     if is_decaduto: sc_pdr = 15
 
 # --- DASHBOARD SCONTI ---
-st.markdown("---")
 st.subheader("📊 Analisi Sconti Max Autorizzati")
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("One Shot", f"{sc_os}%")
@@ -130,19 +113,18 @@ m3.metric("High First", f"{sc_hf}%")
 m4.metric("PdR", f"{sc_pdr}%")
 
 # --- NEGOZIAZIONE ---
-st.markdown("---")
 st.subheader("🤝 Accordo Negoziale")
 c1, c2 = st.columns(2)
 with c1:
     tipo_contratto = st.selectbox("Strategia Scelta", ["One Shot", "Short Arrangement", "High First", "Piano di Rientro"])
 with c2:
     t_max = {"One Shot": sc_os, "Short Arrangement": sc_sh, "High First": sc_hf, "Piano di Rientro": sc_pdr}[tipo_contratto]
-    sconto_f = st.number_input(f"Sconto da applicare (Max {t_max}%)", 0, int(t_max), 0)
+    sconto_f = st.number_input(f"Sconto applicato (Max {t_max}%)", 0, int(t_max), 0)
 
 debito_scontato_tot = debito_tot_orig * (1 - sconto_f/100)
 acconto_effettivo = 0.0
 
-# GESTIONE HIGH FIRST (ACCONTO)
+# LOGICA ACCONTO HIGH FIRST
 if tipo_contratto == "High First":
     perc_acc = 20 if debito_tot_orig < 5000 else (15 if debito_tot_orig <= 10000 else 10)
     acc_min = debito_tot_orig * (perc_acc / 100)
@@ -154,13 +136,14 @@ else:
 
 # SVILUPPO PIANO
 if tipo_contratto != "One Shot":
+    # Rate Minime
     r_s, r_m = (150, 70) if portfolio != "P2DM" else (90, 35)
     min_t = r_s if num_pratiche == 1 else (r_m * num_pratiche)
     
     st.info(f"💡 Debito da rateizzare: {deb_da_rateizzare:,.2f} €")
     rata_scelta = st.slider("Seleziona Rata Totale (€)", float(min_t), max(min_t+1500, 5000.0), float(min_t))
     
-    # --- CALCOLO A CASCATA (CORRETTO) ---
+    # SVILUPPO CASCATA
     deb_residui_list = []
     for d in lista_debiti_orig:
         scontato_singola = d['valore'] * (1 - sconto_f/100)
@@ -172,21 +155,19 @@ if tipo_contratto != "One Shot":
     piani_f = {d['id']: [] for d in deb_ordinati}
     temp_res = [d['res'] for d in deb_ordinati]
     
-    # CICLO DI CALCOLO
     while sum(temp_res) > 0.1 and mesi_tot < 400:
         attive = [v for v in temp_res if v > 0]
         n_a = len(attive)
         if n_a == 0: break
         
-        r_p = rata_scelta / n_a
-        m_fase = min(attive) / r_p
+        rata_p = rata_scelta / n_a
+        mesi_fase = min(attive) / rata_p
         
         for i in range(len(temp_res)):
             if temp_res[i] > 0:
-                piani_f[deb_ordinati[i]['id']].append({"r": round(m_fase), "v": round(r_p, 2)})
-                temp_res[i] -= (r_p * m_fase)
-        
-        mesi_tot += m_fase
+                piani_f[deb_ordinati[i]['id']].append({"r": round(mesi_fase), "v": round(rata_p, 2)})
+                temp_res[i] -= (rata_p * mesi_fase)
+        mesi_tot += mesi_fase
 
     st.success(f"📌 SCHEDA OPERATIVA (Totale {round(mesi_tot) + (1 if acconto_effettivo > 0 else 0)} mesi)")
     col_c = st.columns(num_pratiche)
