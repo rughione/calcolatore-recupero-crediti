@@ -3,84 +3,80 @@ import streamlit as st
 # Configurazione pagina
 st.set_page_config(page_title="Rugni Debt Manager", layout="wide")
 
-# --- CSS INIEZIONE: FIX CONTRASTO E TITOLI ---
+# --- CSS INIEZIONE: FORZATURA LIGHT MODE E CONTRASTO TOTALE ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-    html, body, [class*="css"] {
-        font-family: 'Roboto', sans-serif;
-        background-color: #f8f9fa;
+    /* 1. FORZIAMO LO SFONDO CHIARO (GOOGLE STYLE) ANCHE IN DARK MODE */
+    [data-testid="stAppViewContainer"], [data-testid="stHeader"], .main, html, body {
+        background-color: #f8f9fa !important;
+        color: #202124 !important;
     }
 
-    /* TITOLI E SOTTOTITOLI: Forza Colore Blu Intenso / Nero */
+    /* 2. TITOLI: BLU GOOGLE AD ALTA VISIBILITÀ */
     h1 {
-        color: #1a73e8 !important; /* Blu Google */
+        color: #1a73e8 !important;
         font-weight: 700 !important;
-        margin-bottom: 20px !important;
+        text-shadow: 0px 1px 2px rgba(0,0,0,0.1);
     }
-    h2, h3 {
-        color: #174ea6 !important; /* Blu scuro per i sottotitoli */
-        font-weight: 600 !important;
-        margin-top: 25px !important;
+    h2, h3, .stMarkdown h2, .stMarkdown h3 {
+        color: #174ea6 !important;
+        font-weight: 700 !important;
+        margin-top: 20px !important;
     }
 
-    /* FIX COLORI METRICHE (Sconti) */
+    /* 3. TESTO GENERALE: NERO PURO PER MASSIMA LEGGIBILITÀ */
+    p, label, span, .stMarkdown p {
+        color: #202124 !important;
+        font-weight: 500 !important;
+    }
+
+    /* 4. FIX PER IL BOX BLU (TESTO BIANCO FORZATO) */
+    .blue-info-box {
+        padding: 20px;
+        background-color: #1a73e8 !important;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 12px rgba(26,115,232,0.4);
+    }
+    .blue-info-box span {
+        color: #ffffff !important; /* Questo vince su tutto */
+        font-weight: 700 !important;
+        font-size: 16px !important;
+    }
+
+    /* 5. CARD BIANCHE (FISSE) */
+    div.stMetric, [data-testid="stMetric"], .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, [data-testid="stVerticalBlock"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #dadce0 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        box-shadow: 0 2px 6px rgba(60,64,67,0.15) !important;
+    }
+
+    /* 6. METRICHE (SCONTI) */
     [data-testid="stMetricValue"] {
         color: #1a73e8 !important;
-        font-size: 38px !important;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
     }
     [data-testid="stMetricLabel"] {
-        color: #202124 !important; /* Nero fumo per etichette */
-        font-weight: 600 !important;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    /* CARD E CONTENITORI */
-    div.stMetric, .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, .stMarkdown div[data-testid="stBlock"] {
-        background-color: #ffffff !important;
-        border: 2px solid #e8f0fe !important; /* Bordo azzurrino leggero */
-        border-radius: 12px !important;
-        padding: 20px !important;
-        box-shadow: 0 4px 6px rgba(32,33,36,0.1) !important;
-    }
-
-    /* TESTO GENERALE */
-    p, span, label, .stMarkdown {
-        color: #202124 !important; /* Forza nero su tutti i testi */
-        font-weight: 400;
-    }
-
-    /* SIDEBAR */
-    [data-testid="stSidebar"] {
-        background-color: #ffffff;
-        border-right: 2px solid #dadce0;
-    }
-    
-    /* Input Fields Labels */
-    .stWidgetLabel p {
-        color: #174ea6 !important;
-        font-weight: 600 !important;
-    }
-
-    /* BOTTONI */
-    .stButton>button {
-        background-color: #1a73e8 !important;
-        color: #ffffff !important;
-        border-radius: 50px !important;
+        color: #5f6368 !important;
         font-weight: 700 !important;
-        border: none !important;
-        padding: 0.5rem 2rem !important;
+    }
+
+    /* 7. SIDEBAR CHIARA */
+    [data-testid="stSidebar"], [data-testid="stSidebar"] section {
+        background-color: #ffffff !important;
+        border-right: 1px solid #dadce0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- AVVISO MOBILE AD ALTO CONTRASTO ---
+# --- AVVISO MOBILE CON CLASSE DEDICATA PER IL BIANCO ---
 st.markdown("""
-    <div style="padding: 15px; background-color: #1a73e8; border-radius: 10px; margin-bottom: 25px; border: none; box-shadow: 0 4px 10px rgba(26,115,232,0.3);">
-        <span style="color: #ffffff; font-weight: 700; font-size: 16px;">
+    <div class="blue-info-box">
+        <span>
             📱 CONSIGLIO MOBILE: Se non vedi il menu laterale, clicca l'icona con le tre linee (&equiv;) in alto a sinistra.
         </span>
     </div>
