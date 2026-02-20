@@ -1,64 +1,65 @@
 import streamlit as st
 
 # Configurazione pagina
-st.set_page_config(page_title="Rughi Debt Manager", layout="wide")
+st.set_page_config(page_title="Rugni Debt Manager", layout="wide")
 
-# --- CSS INIEZIONE: GOOGLE MATERIAL DESIGN ---
+# --- CSS INIEZIONE: FIX COLORI E MOBILE ---
 st.markdown("""
     <style>
-    /* Importazione Font Roboto (Google) */
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
     html, body, [class*="css"] {
         font-family: 'Roboto', sans-serif;
-        background-color: #f8f9fa; /* Grigio chiarissimo Google */
+        background-color: #f8f9fa;
     }
 
-    /* Navbar/Titolo stile Google */
-    .stApp header {
-        background-color: #ffffff;
+    /* FIX COLORI METRICHE (Sconti) - Forziamo il contrasto */
+    [data-testid="stMetricValue"] {
+        color: #1a73e8 !important; /* Blu Google per i numeri */
+        font-size: 32px !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #5f6368 !important; /* Grigio scuro per le etichette */
+        font-weight: 500 !important;
     }
 
-    /* Sidebar minimalista */
+    /* Stile delle Card */
+    div.stMetric, .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, .stMarkdown div[data-testid="stBlock"] {
+        background-color: #ffffff !important;
+        border: 1px solid #dadce0 !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        box-shadow: 0 1px 3px rgba(60,64,67,0.3) !important;
+        color: #202124 !important; /* Testo generale nero/grigio scuro */
+    }
+
+    /* Fix per i testi dentro le card bianche */
+    p, span, label {
+        color: #202124 !important;
+    }
+
+    /* Sidebar - Mobile Friendly */
     [data-testid="stSidebar"] {
         background-color: #ffffff;
         border-right: 1px solid #dadce0;
     }
 
-    /* Card Stile Material Design 3 */
-    div.stMetric, .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, .stMarkdown div[data-testid="stBlock"] {
-        background-color: #ffffff;
-        border: 1px solid #dadce0;
-        border-radius: 12px;
-        padding: 20px !important;
-        box-shadow: 0 1px 3px rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
-        margin-bottom: 10px;
-    }
-
-    /* Bottoni Google Blue */
+    /* Bottoni */
     .stButton>button {
         background-color: #1a73e8;
-        color: white;
+        color: white !important;
         border-radius: 24px;
-        border: none;
-        padding: 10px 24px;
         font-weight: 500;
-        transition: box-shadow 0.2s;
-    }
-    .stButton>button:hover {
-        box-shadow: 0 1px 3px 0 rgba(66,133,244,0.45), 0 4px 8px 3px rgba(66,133,244,0.3);
-        background-color: #1765cc;
-    }
-
-    /* Colori Accento Google */
-    h1 { color: #202124; font-weight: 500; }
-    .stMetric label { color: #5f6368 !important; font-weight: 500 !important; }
-    
-    /* Box Successo (Verde Google) */
-    div[data-testid="stNotification"] {
-        border-left: 5px solid #34a853 !important;
     }
     </style>
+    """, unsafe_allow_html=True)
+
+# --- MESSAGGIO PER UTENTI MOBILE ---
+# Questo appare solo su schermi piccoli per aiutare i funzionari
+st.markdown("""
+    <div style="display: block; padding: 10px; background-color: #e8f0fe; border-radius: 10px; margin-bottom: 20px; border: 1px solid #1a73e8;">
+        📱 <b>Consiglio Mobile:</b> Se non vedi le impostazioni, clicca l'icona <b>&equiv;</b> o la freccetta in alto a sinistra!
+    </div>
     """, unsafe_allow_html=True)
 
 # --- DATABASE ASSET ---
@@ -66,8 +67,7 @@ p2_assets = ["AGSUN/2", "AGS/2", "AGSF/2", "FLO/2", "AFLO/2", "UNIF/1", "UNIF/2"
 p3_assets = ["MPS", "FIN/1", "CMP", "CMS", "UCQ/1", "UCQA", "IUB", "EDS", "SRG", "INT", "DBK"]
 p2dm_assets = ["ISB", "LOC", "IFIS", "BLF"]
 
-st.title("🛡️ Rughi Debt Management")
-st.markdown("### Pannello Operativo Negoziazione")
+st.title("🛡️ Rugni Debt Management")
 
 # --- SIDEBAR ---
 st.sidebar.markdown("## ⚙️ Configurazione")
@@ -96,7 +96,6 @@ for i in range(num_pratiche):
 debito_tot_orig = sum(d['valore'] for d in lista_debiti_orig)
 
 # --- CALCOLO SCONTI MASSIMI ---
-# (Mantiene tutte le regole che mi hai fornito in precedenza)
 sc_os, sc_sh, sc_hf, sc_pdr = 0, 0, 0, 0
 if portfolio == "P1":
     sc_sh, sc_hf, sc_pdr = 25, 20, (10 if not is_decaduto else 0)
@@ -134,16 +133,13 @@ with c2:
 debito_scontato_tot = debito_tot_orig * (1 - sconto_f/100)
 
 if tipo_contratto != "One Shot":
-    # Regole Rate Minime
     r_s, r_m = (150, 70) if portfolio != "P2DM" else (90, 35)
     min_t = r_s if num_pratiche == 1 else (r_m * num_pratiche)
     
     rata_scelta = st.slider("Seleziona Rata Totale (€)", float(min_t), max(min_t+1500, 5000.0), float(min_t))
     
-    # SVILUPPO CASCATA OPERATIVO
     st.info(f"💡 **Totale da Rientrare:** {debito_scontato_tot:,.2f} €")
     
-    # Logica di calcolo a cascata per il funzionario
     deb_residui = sorted([{"id": d['id'], "res": d['valore']*(1-sconto_f/100)} for d in lista_debiti_orig], key=lambda x: x['res'])
     mesi_t = 0
     piani_f = {d['id']: [] for d in deb_residui}
