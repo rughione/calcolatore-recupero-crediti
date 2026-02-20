@@ -67,7 +67,7 @@ p2_assets = ["AGSUN/2", "AGS/2", "AGSF/2", "FLO/2", "AFLO/2", "UNIF/1", "UNIF/2"
 p3_assets = ["MPS", "FIN/1", "CMP", "CMS", "UCQ/1", "UCQA", "IUB", "EDS", "SRG", "INT", "DBK"]
 p2dm_assets = ["ISB", "LOC", "IFIS", "BLF"]
 
-st.title("🛡️ Rugni Debt Management")
+st.title("🛡️ Rughi Debt Management")
 
 # --- SIDEBAR ---
 st.sidebar.markdown("## ⚙️ Configurazione")
@@ -168,3 +168,4 @@ if tipo_contratto != "One Shot":
     if mesi_t > 160: st.error("LIMITE 160 MESI SUPERATO")
 else:
     st.success(f"💰 **PAGAMENTO ONE SHOT:** {debito_scontato_tot:,.2f} €")
+
