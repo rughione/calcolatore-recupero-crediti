@@ -3,7 +3,7 @@ import streamlit as st
 # Configurazione pagina
 st.set_page_config(page_title="Rugni Debt Manager", layout="wide")
 
-# --- CSS INIEZIONE: FIX COLORI E MOBILE ---
+# --- CSS INIEZIONE: FIX CONTRASTO E TITOLI ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
@@ -13,52 +13,76 @@ st.markdown("""
         background-color: #f8f9fa;
     }
 
-    /* FIX COLORI METRICHE (Sconti) - Forziamo il contrasto */
+    /* TITOLI E SOTTOTITOLI: Forza Colore Blu Intenso / Nero */
+    h1 {
+        color: #1a73e8 !important; /* Blu Google */
+        font-weight: 700 !important;
+        margin-bottom: 20px !important;
+    }
+    h2, h3 {
+        color: #174ea6 !important; /* Blu scuro per i sottotitoli */
+        font-weight: 600 !important;
+        margin-top: 25px !important;
+    }
+
+    /* FIX COLORI METRICHE (Sconti) */
     [data-testid="stMetricValue"] {
-        color: #1a73e8 !important; /* Blu Google per i numeri */
-        font-size: 32px !important;
+        color: #1a73e8 !important;
+        font-size: 38px !important;
+        font-weight: 700 !important;
     }
     [data-testid="stMetricLabel"] {
-        color: #5f6368 !important; /* Grigio scuro per le etichette */
-        font-weight: 500 !important;
+        color: #202124 !important; /* Nero fumo per etichette */
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    /* Stile delle Card */
+    /* CARD E CONTENITORI */
     div.stMetric, .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, .stMarkdown div[data-testid="stBlock"] {
         background-color: #ffffff !important;
-        border: 1px solid #dadce0 !important;
+        border: 2px solid #e8f0fe !important; /* Bordo azzurrino leggero */
         border-radius: 12px !important;
         padding: 20px !important;
-        box-shadow: 0 1px 3px rgba(60,64,67,0.3) !important;
-        color: #202124 !important; /* Testo generale nero/grigio scuro */
+        box-shadow: 0 4px 6px rgba(32,33,36,0.1) !important;
     }
 
-    /* Fix per i testi dentro le card bianche */
-    p, span, label {
-        color: #202124 !important;
+    /* TESTO GENERALE */
+    p, span, label, .stMarkdown {
+        color: #202124 !important; /* Forza nero su tutti i testi */
+        font-weight: 400;
     }
 
-    /* Sidebar - Mobile Friendly */
+    /* SIDEBAR */
     [data-testid="stSidebar"] {
         background-color: #ffffff;
-        border-right: 1px solid #dadce0;
+        border-right: 2px solid #dadce0;
+    }
+    
+    /* Input Fields Labels */
+    .stWidgetLabel p {
+        color: #174ea6 !important;
+        font-weight: 600 !important;
     }
 
-    /* Bottoni */
+    /* BOTTONI */
     .stButton>button {
-        background-color: #1a73e8;
-        color: white !important;
-        border-radius: 24px;
-        font-weight: 500;
+        background-color: #1a73e8 !important;
+        color: #ffffff !important;
+        border-radius: 50px !important;
+        font-weight: 700 !important;
+        border: none !important;
+        padding: 0.5rem 2rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- MESSAGGIO PER UTENTI MOBILE ---
-# Questo appare solo su schermi piccoli per aiutare i funzionari
+# --- AVVISO MOBILE AD ALTO CONTRASTO ---
 st.markdown("""
-    <div style="display: block; padding: 10px; background-color: #e8f0fe; border-radius: 10px; margin-bottom: 20px; border: 1px solid #1a73e8;">
-        📱 <b>Consiglio Mobile:</b> Se non vedi le impostazioni, clicca l'icona <b>&equiv;</b> o la freccetta in alto a sinistra!
+    <div style="padding: 15px; background-color: #1a73e8; border-radius: 10px; margin-bottom: 25px; border: none; box-shadow: 0 4px 10px rgba(26,115,232,0.3);">
+        <span style="color: #ffffff; font-weight: 700; font-size: 16px;">
+            📱 CONSIGLIO MOBILE: Se non vedi il menu laterale, clicca l'icona con le tre linee (&equiv;) in alto a sinistra.
+        </span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -67,14 +91,14 @@ p2_assets = ["AGSUN/2", "AGS/2", "AGSF/2", "FLO/2", "AFLO/2", "UNIF/1", "UNIF/2"
 p3_assets = ["MPS", "FIN/1", "CMP", "CMS", "UCQ/1", "UCQA", "IUB", "EDS", "SRG", "INT", "DBK"]
 p2dm_assets = ["ISB", "LOC", "IFIS", "BLF"]
 
-st.title("🛡️ Rughi Debt Management")
+st.title("🛡️ Rugni Debt Management")
 
 # --- SIDEBAR ---
 st.sidebar.markdown("## ⚙️ Configurazione")
-asset_input = st.sidebar.text_input("Asset", value="FLO/2").upper()
+asset_input = st.sidebar.text_input("Nome Asset", value="FLO/2").upper()
 num_pratiche = st.sidebar.number_input("N. Pratiche", min_value=1, value=1)
-proc = st.sidebar.selectbox("Procedura", ["Classic Negotiation", "Behavioral Negotiation"])
-scelta_patr = st.sidebar.selectbox("Patrimoniale", ["Negativa", "No Info", "Positiva < 1k", "Positiva 1k-2k", "Positiva > 2k", "Pensionato"])
+proc = st.sidebar.selectbox("Tipo Procedura", ["Classic Negotiation", "Behavioral Negotiation"])
+scelta_patr = st.sidebar.selectbox("Stato Patrimoniale", ["Negativa", "No Info", "Positiva < 1k", "Positiva 1k-2k", "Positiva > 2k", "Pensionato"])
 is_decaduto = st.sidebar.checkbox("Già Decaduto")
 pdr_attivo = st.sidebar.checkbox("PdR Attivo")
 
@@ -85,7 +109,7 @@ elif asset_input in p2dm_assets: portfolio = "P2DM"
 else: portfolio = "P1"
 
 # --- INPUT DEBITI ---
-st.subheader("📋 Debiti Inseriti")
+st.subheader("📋 Inserimento Debiti Individuali")
 lista_debiti_orig = []
 cols_in = st.columns(num_pratiche)
 for i in range(num_pratiche):
@@ -122,13 +146,13 @@ m4.metric("PdR", f"{sc_pdr}%")
 
 # --- NEGOZIAZIONE ---
 st.markdown("---")
-st.subheader("🤝 Accordo Negoziale")
+st.subheader("🤝 Configurazione Accordo")
 c1, c2 = st.columns(2)
 with c1:
-    tipo_contratto = st.selectbox("Tipo Accordo", ["One Shot", "Short Arrangement", "High First", "Piano di Rientro"])
+    tipo_contratto = st.selectbox("Strategia Scelta", ["One Shot", "Short Arrangement", "High First", "Piano di Rientro"])
 with c2:
     t_max = {"One Shot": sc_os, "Short Arrangement": sc_sh, "High First": sc_hf, "Piano di Rientro": sc_pdr}[tipo_contratto]
-    sconto_f = st.number_input(f"Sconto Applicato (Max {t_max}%)", 0, int(t_max), 0)
+    sconto_f = st.number_input(f"Sconto da applicare (Max {t_max}%)", 0, int(t_max), 0)
 
 debito_scontato_tot = debito_tot_orig * (1 - sconto_f/100)
 
@@ -136,10 +160,10 @@ if tipo_contratto != "One Shot":
     r_s, r_m = (150, 70) if portfolio != "P2DM" else (90, 35)
     min_t = r_s if num_pratiche == 1 else (r_m * num_pratiche)
     
+    st.info(f"💡 **Debito Scontato da Rientrare:** {debito_scontato_tot:,.2f} €")
     rata_scelta = st.slider("Seleziona Rata Totale (€)", float(min_t), max(min_t+1500, 5000.0), float(min_t))
     
-    st.info(f"💡 **Totale da Rientrare:** {debito_scontato_tot:,.2f} €")
-    
+    # SVILUPPO CASCATA
     deb_residui = sorted([{"id": d['id'], "res": d['valore']*(1-sconto_f/100)} for d in lista_debiti_orig], key=lambda x: x['res'])
     mesi_t = 0
     piani_f = {d['id']: [] for d in deb_residui}
@@ -156,7 +180,7 @@ if tipo_contratto != "One Shot":
                 temp_res[i] -= (r_p * m_fase)
         mesi_t += m_fase
 
-    st.success(f"📌 **REPORT OPERATIVO** (Chiusura in {round(mesi_t)} mesi)")
+    st.success(f"📌 **SCHEDA OPERATIVA PER IL PIANO** (Totale {round(mesi_t)} mesi)")
     col_cards = st.columns(num_pratiche)
     for i, d_info in enumerate(deb_residui):
         with col_cards[i]:
@@ -165,7 +189,6 @@ if tipo_contratto != "One Shot":
                 if step['r'] > 0:
                     st.write(f"🔹 **{step['r']}** rate da **{step['v']}€**")
     
-    if mesi_t > 160: st.error("LIMITE 160 MESI SUPERATO")
+    if mesi_t > 160: st.error("❌ LIMITE 160 MESI SUPERATO")
 else:
-    st.success(f"💰 **PAGAMENTO ONE SHOT:** {debito_scontato_tot:,.2f} €")
-
+    st.success(f"💰 **DA VERSARE IN UNICA SOLUZIONE:** {debito_scontato_tot:,.2f} €")
