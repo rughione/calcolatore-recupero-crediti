@@ -56,7 +56,7 @@ st.markdown("""
 # --- BANNER MOBILE ---
 st.markdown('<div class="mobile-hint">📱 MENU IMPOSTAZIONI: Clicca l\'icona &equiv; in alto a sinistra</div>', unsafe_allow_html=True)
 
-st.title("🛡️ Rugni Debt Management")
+st.title("🛡️ Rughi Debt Management")
 
 # --- SIDEBAR ---
 st.sidebar.markdown("### ⚙️ Configurazione")
@@ -184,3 +184,4 @@ if tipo_contratto != "One Shot":
     if (round(mesi_tot) + (1 if acconto_effettivo > 0 else 0)) > 160: st.error("❌ LIMITE 160 MESI SUPERATO")
 else:
     st.success(f"💰 DA VERSARE IN UNICA SOLUZIONE: {debito_scontato_tot:,.2f} €")
+
