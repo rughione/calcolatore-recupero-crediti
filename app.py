@@ -110,7 +110,7 @@ with c2:
 
 # ALERT SUPERAMENTO SCONTO
 if sconto_f > t_max:
-    st.warning("⚠️ **HAI CONTROLLATO CHE IN DMP PUOI FARE QUESTO SCONTO?**")
+    st.warning("⚠️ **HAI CONTROLLATO SE IN DMP PUOI FARE QUESTO SCONTO?**")
 
 debito_scontato = debito_tot_orig * (1 - sconto_f/100)
 st.info(f"💰 **Debito netto da rientrare: {debito_scontato:,.2f} €**")
@@ -184,3 +184,4 @@ with tab2:
         st.info(f"📉 Residuo: {max(0.0, res_v):,.2f} €")
         if res_v > 0:
             st.warning(f"👉 Mancano ancora **{int(rate_f) + 1} rate** da **{i_f} €**")
+
