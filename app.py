@@ -3,7 +3,7 @@ import streamlit as st
 # Configurazione pagina
 st.set_page_config(page_title="Rugni Debt Manager PRO", layout="wide")
 
-# --- CSS GOOGLE STYLE (CONTRASTO E PULIZIA) ---
+# --- CSS DEFINITIVO (PULITO E AD ALTO CONTRASTO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -36,7 +36,7 @@ scelta_patr = st.sidebar.selectbox("Stato Patrimoniale", ["Negativa", "No Info",
 is_decaduto = st.sidebar.checkbox("Già Decaduto")
 pdr_attivo = st.sidebar.checkbox("PdR Attivo")
 
-# --- DATABASE ASSET ---
+# --- DATABASE ASSET E PORTAFOGLIO ---
 p2_assets = ["AGSUN/2", "AGS/2", "AGSF/2", "FLO/2", "AFLO/2", "UNIF/1", "UNIF/2", "UNIG", "UCQ/2", "UCQ/3", "DBF/1", "DBF/3", "CMFC/1", "CCRII"]
 p3_assets = ["MPS", "FIN/1", "CMP", "CMS", "UCQ/1", "UCQA", "IUB", "EDS", "SRG", "INT", "DBK"]
 p2dm_assets = ["ISB", "LOC", "IFIS", "BLF"]
@@ -46,8 +46,8 @@ elif asset_input in p3_assets: portfolio = "P3"
 elif asset_input in p2dm_assets: portfolio = "P2DM"
 else: portfolio = "P1"
 
-# --- DEBITI ---
-st.subheader("📋 Inserimento Debiti")
+# --- INPUT DEBITI ---
+st.subheader("📋 Inserimento Debiti Individuali")
 lista_debiti_orig = []
 cols_in = st.columns(num_pratiche)
 for i in range(num_pratiche):
@@ -56,7 +56,17 @@ for i in range(num_pratiche):
         lista_debiti_orig.append({"id": i+1, "valore": v})
 debito_tot_orig = sum(d['valore'] for d in lista_debiti_orig)
 
-# --- SCONTI MAX ---
+# --- CALCOLO RATE MINIME ---
+if portfolio == "P2DM":
+    rate_map = {"Negativa": (90, 35), "No Info": (100, 65), "Positiva < 1k": (100, 65), "Positiva 1k-2k": (150, 95), "Positiva > 2k": (200, 140), "Pensionato": (90, 35)}
+else:
+    rate_map = {"Negativa": (150, 70), "No Info": (180, 100), "Positiva < 1k": (180, 100), "Positiva 1k-2k": (200, 130), "Positiva > 2k": (250, 180), "Pensionato": (150, 70)}
+
+k_patr = "Negativa" if "Negativa" in scelta_patr or "Pensionato" in scelta_patr else ("No Info" if "No" in scelta_patr else scelta_patr)
+r_sing, r_mult = rate_map.get(k_patr, (180, 100))
+minima_totale = r_sing if num_pratiche == 1 else (r_mult * num_pratiche)
+
+# --- LOGICA SCONTI ---
 sc_os, sc_sh, sc_hf, sc_pdr = 0, 0, 0, 0
 if portfolio == "P1":
     sc_sh, sc_hf, sc_pdr = 25, 20, (10 if not is_decaduto else 0)
@@ -71,56 +81,94 @@ elif portfolio == "P2DM":
     sc_os, sc_sh, sc_hf, sc_pdr = 60, 50, 40, 30
     if is_decaduto: sc_pdr = 15
 
-# --- DASHBOARD ---
-st.subheader("📊 Analisi Sconti Max Autorizzati")
-m1, m2, m3, m4 = st.columns(4)
-m1.metric("One Shot", f"{sc_os}%")
-m2.metric("Short Arr", f"{sc_sh}%")
-m3.metric("High First", f"{sc_hf}%")
-m4.metric("PdR", f"{sc_pdr}%")
+# --- DASHBOARD ANALITICA ---
+st.subheader("📊 Parametri di Riferimento")
+m1, m2, m3, m4, m5 = st.columns(5)
+m1.metric("One Shot Max", f"{sc_os}%")
+m2.metric("Short Arr Max", f"{sc_sh}%")
+m3.metric("High First Max", f"{sc_hf}%")
+m4.metric("PdR Max", f"{sc_pdr}%")
+m5.metric("Rata Minima", f"{minima_totale}€")
 
-# --- ACCORDO ---
+# --- CONFIGURAZIONE ACCORDO ---
 st.subheader("🤝 Configurazione Accordo")
 c1, c2 = st.columns(2)
 with c1:
-    tipo_accordo = st.selectbox("Strategia", ["One Shot", "Short Arrangement", "High First", "Piano di Rientro"])
+    tipo_accordo = st.selectbox("Strategia Scelta", ["One Shot", "Short Arrangement", "High First", "Piano di Rientro"])
 with c2:
     t_max = {"One Shot": sc_os, "Short Arrangement": sc_sh, "High First": sc_hf, "Piano di Rientro": sc_pdr}[tipo_accordo]
-    sconto_f = st.number_input(f"Sconto scelto (Max {t_max}%)", 0, int(t_max), 0)
+    sconto_f = st.number_input(f"Sconto da applicare (Max {t_max}%)", 0, int(t_max), 0)
 
-debito_scontato = debito_tot_orig * (1 - sconto_f/100)
-st.success(f"💰 **Debito netto da rientrare: {debito_scontato:,.2f} €**")
+debito_scontato_tot = debito_tot_orig * (1 - sconto_f/100)
+st.info(f"💰 **Debito totale scontato: {debito_scontato_tot:,.2f} €**")
 
-# --- TOOL RIENTRO LIBERO (VELOCITÀ VARIABILI) ---
-st.markdown("### 🛠️ Tool: Piano a Velocità Variabile")
-st.write("Usa questo strumento per creare piani con rate di importi differenti.")
+# --- SCELTA SIMULATORE ---
+tab1, tab2 = st.tabs(["🔄 Piano Standard a Cascata", "⚡ Tool: Velocità Variabile"])
 
-col_lib1, col_lib2, col_lib3 = st.columns(3)
-with col_lib1:
-    n_step1 = st.number_input("Step 1: N. Rate", min_value=0, value=0)
-    imp_step1 = st.number_input("Step 1: Importo (€)", min_value=0.0, value=0.0)
-with col_lib2:
-    n_step2 = st.number_input("Step 2: N. Rate", min_value=0, value=0)
-    imp_step2 = st.number_input("Step 2: Importo (€)", min_value=0.0, value=0.0)
-with col_lib3:
-    imp_finale = st.number_input("Step Finale: Importo Rata (€)", min_value=0.0, value=100.0)
-
-# Calcolo Residuo dopo gli step manuali
-pagato_man = (n_step1 * imp_step1) + (n_step2 * imp_step2)
-residuo_finale = debito_scontato - pagato_man
-
-if imp_finale > 0:
-    rate_finali_necessarie = max(0.0, residuo_finale / imp_finale)
-    importo_residuo_visual = max(0.0, residuo_finale)
-    
-    st.info(f"📉 **Situazione dopo Step 1 e 2:** Residuo € {importo_residuo_visual:,.2f}")
-    if residuo_finale > 0:
-        st.warning(f"👉 Per chiudere il contratto servono ancora **{int(rate_finali_necessarie) + 1} rate** da **{imp_finale} €**")
-        st.write(f"Durata Totale Piano: {int(n_step1 + n_step2 + rate_finali_necessarie) + 1} mesi")
+with tab1:
+    if tipo_accordo == "One Shot":
+        st.success(f"✅ Pagamento One Shot autorizzato: {debito_scontato_tot:,.2f} €")
     else:
-        st.success("✅ Il debito viene estinto con i primi due step!")
+        rata_scelta = st.slider("Seleziona Rata Totale (€)", float(minima_totale), max(minima_totale+1500, 5000.0), float(minima_totale))
+        
+        # Logica Acconto se High First
+        acconto_hf = 0.0
+        if tipo_accordo == "High First":
+            perc_acc = 20 if debito_tot_orig < 5000 else (15 if debito_tot_orig <= 10000 else 10)
+            acc_min = debito_tot_orig * (perc_acc / 100)
+            st.warning(f"⚠️ Acconto minimo High First richiesto: {acc_min:,.2f} €")
+            acconto_hf = st.number_input("Inserisci Acconto versato", min_value=float(acc_min), value=float(acc_min), key="acc_std")
+        
+        # Calcolo Cascata
+        deb_res_list = []
+        for d in lista_debiti_orig:
+            scontato = d['valore'] * (1 - sconto_f/100)
+            q_acc = (d['valore'] / debito_tot_orig) * acconto_hf
+            deb_res_list.append({"id": d['id'], "res": scontato - q_acc})
+        
+        deb_ordinati = sorted(deb_res_list, key=lambda x: x['res'])
+        mesi_t, piani_f, temp_res = 0, {d['id']: [] for d in deb_ordinati}, [d['res'] for d in deb_ordinati]
+        
+        while sum(temp_res) > 0.1 and mesi_t < 400:
+            attive = [v for v in temp_res if v > 0]
+            if not attive: break
+            r_p = rata_scelta / len(attive)
+            m_fase = min(attive) / r_p
+            for i in range(len(temp_res)):
+                if temp_res[i] > 0:
+                    piani_f[deb_ordinati[i]['id']].append({"r": round(m_fase), "v": round(r_p, 2)})
+                    temp_res[i] -= (r_p * m_fase)
+            mesi_t += m_fase
 
-# --- SEZIONE CASCATA STANDARD (Opzionale, rimane sotto) ---
-st.markdown("---")
-st.subheader("⏳ Simulatore a Cascata Standard (Rata Unica)")
-# ... (Qui rimane il codice precedente per la cascata automatica se serve)
+        st.success(f"📌 Chiusura totale in {round(mesi_t) + (1 if acconto_hf > 0 else 0)} mesi")
+        col_res = st.columns(num_pratiche)
+        for i, d_inf in enumerate(deb_ordinati):
+            with col_res[i]:
+                st.markdown(f"**PRATICA {d_inf['id']}**")
+                if acconto_hf > 0:
+                    q_a = (lista_debiti_orig[d_inf['id']-1]['valore'] / debito_tot_orig) * acconto_hf
+                    st.write(f"🚩 **1** rata da **{q_a:.2f}€**")
+                for step in piani_f[d_inf['id']]:
+                    if step['r'] > 0: st.write(f"🔹 **{step['r']}** rate da **{step['v']}€**")
+
+with tab2:
+    st.markdown("### 🛠️ Simulatore a Velocità Variabile")
+    st.write("Questo tool permette di inserire rate manuali (es. per piani a salire o acconti pesanti).")
+    
+    col_v1, col_v2, col_v3 = st.columns(3)
+    with col_v1:
+        n1, i1 = st.number_input("Step 1: N. Rate", 0, value=0), st.number_input("Step 1: Importo (€)", 0.0, value=0.0)
+    with col_v2:
+        n2, i2 = st.number_input("Step 2: N. Rate", 0, value=0), st.number_input("Step 2: Importo (€)", 0.0, value=0.0)
+    with col_v3:
+        i_f = st.number_input("Step Finale: Importo Rata (€)", 0.0, value=float(minima_totale/num_pratiche if num_pratiche > 0 else 100))
+
+    pagato_m = (n1 * i1) + (n2 * i2)
+    res_v = debito_scontato_tot - pagato_m
+    
+    if i_f > 0:
+        rate_f = max(0.0, res_v / i_f)
+        st.info(f"📉 Residuo dopo step manuali: {max(0.0, res_v):,.2f} €")
+        if res_v > 0:
+            st.warning(f"👉 Per chiudere servono ancora **{int(rate_f) + 1} rate** da **{i_f} €**")
+            st.write(f"Durata Totale: {int(n1 + n2 + rate_f) + 1} mesi")
