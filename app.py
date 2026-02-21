@@ -3,7 +3,7 @@ import streamlit as st
 # Configurazione pagina
 st.set_page_config(page_title="Rugni Debt Manager PRO", layout="wide")
 
-# --- CSS DEFINITIVO (PULITO E AD ALTO CONTRASTO) ---
+# --- CSS: CONTRASTO MASSIMO E DESIGN PULITO ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -31,10 +31,7 @@ st.title("🛡️ Rugni Debt Management")
 # --- SIDEBAR ---
 st.sidebar.markdown("### ⚙️ Configurazione")
 asset_input = st.sidebar.text_input("Nome Asset", value="FLO/2").upper()
-
-# NUOVO: Selezione manuale portafoglio
 port_choice = st.sidebar.selectbox("Selezione Portafoglio", ["Automatico", "P1", "P2", "P3", "P2DM"])
-
 num_pratiche = st.sidebar.number_input("N. Pratiche", min_value=1, value=1)
 proc = st.sidebar.selectbox("Tipo Procedura", ["Classic Negotiation", "Behavioral Negotiation"])
 scelta_patr = st.sidebar.selectbox("Stato Patrimoniale", ["Negativa", "No Info", "Positiva < 1k", "Positiva 1k-2k", "Positiva > 2k", "Pensionato"])
@@ -46,7 +43,6 @@ p2_assets = ["AGSUN/2", "AGS/2", "AGSF/2", "FLO/2", "AFLO/2", "UNIF/1", "UNIF/2"
 p3_assets = ["MPS", "FIN/1", "CMP", "CMS", "UCQ/1", "UCQA", "IUB", "EDS", "SRG", "INT", "DBK"]
 p2dm_assets = ["ISB", "LOC", "IFIS", "BLF"]
 
-# Logica di identificazione Portafoglio
 if port_choice == "Automatico":
     if asset_input in p2_assets: portfolio = "P2"
     elif asset_input in p3_assets: portfolio = "P3"
@@ -65,29 +61,44 @@ for i in range(num_pratiche):
         lista_debiti_orig.append({"id": i+1, "valore": v})
 debito_tot_orig = sum(d['valore'] for d in lista_debiti_orig)
 
+# --- LOGICA SCONTI MASSIMI ---
+sc_os, sc_sh, sc_hf, sc_pdr = 0, 0, 0, 0
+if portfolio == "P1":
+    sc_sh, sc_hf, sc_pdr = 25, 20, (10 if not is_decaduto else 0)
+    if any(x in scelta_patr for x in ["Negativa", "Pensionato"]):
+        sc_os = 70 if debito_tot_orig < 10000 else 60
+        if pdr_attivo: sc_os -= 20
+    else: sc_os = 30 if debito_tot_orig < 10000 else 50
+
+elif portfolio == "P2":
+    sc_sh, sc_hf, sc_pdr = 30, 25, (10 if not is_decaduto else 0)
+    if any(x in scelta_patr for x in ["Positiva < 1k", "Positiva 1k-2k", "Positiva > 2k"]):
+        if debito_tot_orig > 10000:
+            sc_os = 40 if not pdr_attivo else 30
+        else:
+            sc_os = 20 if not pdr_attivo else 15
+    else:
+        if "Pensionato" in scelta_patr:
+            sc_os = 70 if debito_tot_orig > 10000 else 50
+        else:
+            sc_os = 60 if debito_tot_orig > 10000 else 40
+        if pdr_attivo: sc_os -= 10
+
+elif portfolio == "P3":
+    sc_sh, sc_hf, sc_pdr = 40, 30, (20 if not is_decaduto else 15)
+    sc_os = 70 if any(x in scelta_patr for x in ["Negativa", "Pensionato"]) else 50
+
+elif portfolio == "P2DM":
+    sc_os, sc_sh, sc_hf, sc_pdr = 60, 50, 40, 30
+    if is_decaduto: sc_pdr = 15
+
 # --- CALCOLO RATE MINIME ---
 rate_map = {"Negativa": (150, 70), "No Info": (180, 100), "Positiva < 1k": (180, 100), "Positiva 1k-2k": (200, 130), "Positiva > 2k": (250, 180), "Pensionato": (150, 70)}
 if portfolio == "P2DM":
     rate_map = {"Negativa": (90, 35), "No Info": (100, 65), "Positiva < 1k": (100, 65), "Positiva 1k-2k": (150, 95), "Positiva > 2k": (200, 140), "Pensionato": (90, 35)}
-
 k_patr = "Negativa" if "Negativa" in scelta_patr or "Pensionato" in scelta_patr else ("No Info" if "No" in scelta_patr else scelta_patr)
 r_sing, r_mult = rate_map.get(k_patr, (180, 100))
 minima_totale = float(r_sing if num_pratiche == 1 else (r_mult * num_pratiche))
-
-# --- CALCOLO SCONTI MASSIMI (RIFERIMENTO) ---
-sc_os, sc_sh, sc_hf, sc_pdr = 0, 0, 0, 0
-if portfolio == "P1":
-    sc_sh, sc_hf, sc_pdr = 25, 20, (10 if not is_decaduto else 0)
-    if "Negativa" in scelta_patr or "Pensionato" in scelta_patr: sc_os = 70 if debito_tot_orig < 10000 else 60
-elif portfolio == "P2":
-    sc_sh, sc_hf, sc_pdr = 30, 25, (10 if not is_decaduto else 0)
-    sc_os = 60 if debito_tot_orig > 10000 else 40
-elif portfolio == "P3":
-    sc_sh, sc_hf, sc_pdr = 40, 30, (20 if not is_decaduto else 15)
-    sc_os = 70 if "Negativa" in scelta_patr else 50
-elif portfolio == "P2DM":
-    sc_os, sc_sh, sc_hf, sc_pdr = 60, 50, 40, 30
-    if is_decaduto: sc_pdr = 15
 
 # --- DASHBOARD ---
 st.subheader("📊 Parametri di Riferimento")
@@ -105,12 +116,10 @@ with c1:
     tipo_accordo = st.selectbox("Strategia", ["One Shot", "Short Arrangement", "High First", "Piano di Rientro"])
 with c2:
     t_max = {"One Shot": sc_os, "Short Arrangement": sc_sh, "High First": sc_hf, "Piano di Rientro": sc_pdr}[tipo_accordo]
-    # SCONTO SBLOCCATO: Rimosso max_value vincolante
-    sconto_f = st.number_input(f"Sconto scelto (Riferimento Tabella: {t_max}%)", min_value=0, value=int(t_max))
+    sconto_f = st.number_input(f"Sconto scelto (Riferimento: {t_max}%)", min_value=0, value=int(t_max))
 
-# ALERT SUPERAMENTO SCONTO
 if sconto_f > t_max:
-    st.warning("⚠️ **HAI CONTROLLATO SE IN DMP PUOI FARE QUESTO SCONTO?**")
+    st.warning("⚠️ HAI CONTROLLATO SE IN DMP PUOI FARE QUESTO SCONTO?")
 
 debito_scontato = debito_tot_orig * (1 - sconto_f/100)
 st.info(f"💰 **Debito netto da rientrare: {debito_scontato:,.2f} €**")
@@ -120,9 +129,14 @@ tab1, tab2 = st.tabs(["🔄 Piano Standard a Cascata", "⚡ Tool: Velocità Vari
 
 with tab1:
     if tipo_accordo == "One Shot":
-        st.success(f"✅ Pagamento One Shot: {debito_scontato:,.2f} €")
+        st.success(f"✅ One Shot: {debito_scontato:,.2f} €")
     else:
-        rata_scelta = st.number_input("Rata Mensile Concordata (€)", min_value=minima_totale, value=minima_totale, step=1.0)
+        # SBLOCCATO: Rimosso il min_value=minima_totale per permettere inserimento libero
+        rata_scelta = st.number_input("Rata Mensile Concordata (€)", min_value=0.0, value=minima_totale, step=1.0)
+        
+        # NUOVO ALERT PER RATA INFERIORE AL MINIMO
+        if rata_scelta < minima_totale:
+            st.error("⚠️ HAI AUTORIZZAZIONE DA RM PER FARE RATA MINIMA INFERIORE?")
         
         acconto_hf = 0.0
         if tipo_accordo == "High First":
@@ -131,41 +145,41 @@ with tab1:
             st.warning(f"⚠️ Acconto minimo High First: {acc_min:,.2f} €")
             acconto_hf = st.number_input("Importo Acconto", min_value=float(acc_min), value=float(acc_min), key="acc_std")
         
-        # Calcolo Cascata
-        deb_res_list = []
-        for d in lista_debiti_orig:
-            scont_sing = d['valore'] * (1 - sconto_f/100)
-            q_acc = (d['valore'] / debito_tot_orig) * acconto_hf
-            deb_res_list.append({"id": d['id'], "res": scont_sing - q_acc})
-        
-        deb_ordinati = sorted(deb_res_list, key=lambda x: x['res'])
-        piani_f = {d['id']: [] for d in deb_ordinati}
-        temp_res = [d['res'] for d in deb_ordinati]
-        mesi_tot = 0
-        
-        while sum(temp_res) > 0.01 and mesi_tot < 500:
-            attive = [v for v in temp_res if v > 0.01]
-            if not attive: break
-            r_p = rata_scelta / len(attive)
-            m_fase = min(attive) / r_p
-            for i in range(len(temp_res)):
-                if temp_res[i] > 0.01:
-                    piani_f[deb_ordinati[i]['id']].append({"r": round(m_fase), "v": round(r_p, 2)})
-                    temp_res[i] -= (r_p * m_fase)
-            mesi_tot += m_fase
+        if rata_scelta > 0:
+            deb_res_list = []
+            for d in lista_debiti_orig:
+                scont_sing = d['valore'] * (1 - sconto_f/100)
+                q_acc = (d['valore'] / debito_tot_orig) * acconto_hf
+                deb_res_list.append({"id": d['id'], "res": scont_sing - q_acc})
+            
+            deb_ordinati = sorted(deb_res_list, key=lambda x: x['res'])
+            piani_f, temp_res, mesi_t = {d['id']: [] for d in deb_ordinati}, [d['res'] for d in deb_ordinati], 0
+            
+            while sum(temp_res) > 0.01 and mesi_t < 500:
+                attive = [v for v in temp_res if v > 0.01]
+                if not attive: break
+                r_p = rata_scelta / len(attive)
+                m_fase = min(attive) / r_p
+                for i in range(len(temp_res)):
+                    if temp_res[i] > 0.01:
+                        piani_f[deb_ordinati[i]['id']].append({"r": round(m_fase), "v": round(r_p, 2)})
+                        temp_res[i] -= (r_p * m_fase)
+                mesi_t += m_fase
 
-        mesi_finali = round(sum(p['r'] for p in piani_f[deb_ordinati[-1]['id']]))
-        st.success(f"📌 Chiusura totale in {mesi_finali + (1 if acconto_hf > 0 else 0)} mesi")
-        
-        col_res = st.columns(num_pratiche)
-        for i, d_inf in enumerate(deb_ordinati):
-            with col_res[i]:
-                st.markdown(f"**PRATICA {d_inf['id']}**")
-                if acconto_hf > 0:
-                    q_a = (lista_debiti_orig[d_inf['id']-1]['valore'] / debito_tot_orig) * acconto_hf
-                    st.write(f"🚩 **1** rata da **{q_a:.2f}€**")
-                for step in piani_f[d_inf['id']]:
-                    if step['r'] > 0: st.write(f"🔹 **{step['r']}** rate da **{step['v']}€**")
+            mesi_finali = round(sum(p['r'] for p in piani_f[deb_ordinati[-1]['id']]))
+            st.success(f"📌 Chiusura totale in {mesi_finali + (1 if acconto_hf > 0 else 0)} mesi")
+            
+            col_res = st.columns(num_pratiche)
+            for i, d_inf in enumerate(deb_ordinati):
+                with col_res[i]:
+                    st.markdown(f"**PRATICA {d_inf['id']}**")
+                    if acconto_hf > 0:
+                        q_a = (lista_debiti_orig[d_inf['id']-1]['valore'] / debito_tot_orig) * acconto_hf
+                        st.write(f"🚩 **1** rata da **{q_a:.2f}€**")
+                    for step in piani_f[d_inf['id']]:
+                        if step['r'] > 0: st.write(f"🔹 **{step['r']}** rate da **{step['v']}€**")
+        else:
+            st.error("Inserisci una rata superiore a 0€ per calcolare il piano.")
 
 with tab2:
     st.markdown("### 🛠️ Simulatore a Velocità Variabile")
@@ -176,7 +190,6 @@ with tab2:
         n2, i2 = st.number_input("Step 2: N. Rate", 0, value=0), st.number_input("Step 2: Importo (€)", 0.0, value=0.0)
     with col_v3:
         i_f = st.number_input("Step Finale: Importo Rata (€)", 0.0, value=float(minima_totale/num_pratiche))
-
     pagato_m = (n1 * i1) + (n2 * i2)
     res_v = debito_scontato - pagato_m
     if i_f > 0:
@@ -184,4 +197,3 @@ with tab2:
         st.info(f"📉 Residuo: {max(0.0, res_v):,.2f} €")
         if res_v > 0:
             st.warning(f"👉 Mancano ancora **{int(rate_f) + 1} rate** da **{i_f} €**")
-
