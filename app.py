@@ -3,7 +3,7 @@ import streamlit as st
 # Configurazione pagina
 st.set_page_config(page_title="Rugni Debt Manager PRO", layout="wide")
 
-# --- CSS DEFINITIVO (PULITO E AD ALTO CONTRASTO) ---
+# --- CSS GOOGLE STYLE (PULIZIA E ALTO CONTRASTO) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -12,8 +12,8 @@ st.markdown("""
     html, body, [data-testid="stAppViewContainer"] { background-color: #f8f9fa !important; color: #000000 !important; }
     h1 { color: #1a73e8 !important; font-weight: 800 !important; }
     h2, h3 { color: #000000 !important; font-weight: 700 !important; border-bottom: 2px solid #1a73e8; padding-bottom: 5px; margin-top: 20px !important; }
-    p, label, span { color: #000000 !important; font-weight: 600 !important; }
-    div[data-testid="stMetric"], .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider {
+    p, label, span, .stMarkdown p, .stWidgetLabel p { color: #000000 !important; font-weight: 600 !important; }
+    div[data-testid="stMetric"], .stAlert, div.stNumberInput, div.stSelectbox, div.stSlider, div[data-baseweb="input"] {
         background-color: #ffffff !important;
         border: 1px solid #dadce0 !important;
         border-radius: 8px !important;
@@ -36,7 +36,7 @@ scelta_patr = st.sidebar.selectbox("Stato Patrimoniale", ["Negativa", "No Info",
 is_decaduto = st.sidebar.checkbox("Già Decaduto")
 pdr_attivo = st.sidebar.checkbox("PdR Attivo")
 
-# --- DATABASE ASSET E PORTAFOGLIO ---
+# --- DATABASE ASSET ---
 p2_assets = ["AGSUN/2", "AGS/2", "AGSF/2", "FLO/2", "AFLO/2", "UNIF/1", "UNIF/2", "UNIG", "UCQ/2", "UCQ/3", "DBF/1", "DBF/3", "CMFC/1", "CCRII"]
 p3_assets = ["MPS", "FIN/1", "CMP", "CMS", "UCQ/1", "UCQA", "IUB", "EDS", "SRG", "INT", "DBK"]
 p2dm_assets = ["ISB", "LOC", "IFIS", "BLF"]
@@ -64,7 +64,7 @@ else:
 
 k_patr = "Negativa" if "Negativa" in scelta_patr or "Pensionato" in scelta_patr else ("No Info" if "No" in scelta_patr else scelta_patr)
 r_sing, r_mult = rate_map.get(k_patr, (180, 100))
-minima_totale = r_sing if num_pratiche == 1 else (r_mult * num_pratiche)
+minima_totale = float(r_sing if num_pratiche == 1 else (r_mult * num_pratiche))
 
 # --- LOGICA SCONTI ---
 sc_os, sc_sh, sc_hf, sc_pdr = 0, 0, 0, 0
@@ -81,7 +81,7 @@ elif portfolio == "P2DM":
     sc_os, sc_sh, sc_hf, sc_pdr = 60, 50, 40, 30
     if is_decaduto: sc_pdr = 15
 
-# --- DASHBOARD ANALITICA ---
+# --- DASHBOARD ---
 st.subheader("📊 Parametri di Riferimento")
 m1, m2, m3, m4, m5 = st.columns(5)
 m1.metric("One Shot Max", f"{sc_os}%")
@@ -109,9 +109,9 @@ with tab1:
     if tipo_accordo == "One Shot":
         st.success(f"✅ Pagamento One Shot autorizzato: {debito_scontato_tot:,.2f} €")
     else:
-        rata_scelta = st.slider("Seleziona Rata Totale (€)", float(minima_totale), max(minima_totale+1500, 5000.0), float(minima_totale))
+        # CAMBIO QUI: Da Slider a Number Input per precisione assoluta
+        rata_scelta = st.number_input("Inserisci Rata Mensile Concordata (€)", min_value=minima_totale, value=minima_totale, step=1.0)
         
-        # Logica Acconto se High First
         acconto_hf = 0.0
         if tipo_accordo == "High First":
             perc_acc = 20 if debito_tot_orig < 5000 else (15 if debito_tot_orig <= 10000 else 10)
@@ -119,7 +119,7 @@ with tab1:
             st.warning(f"⚠️ Acconto minimo High First richiesto: {acc_min:,.2f} €")
             acconto_hf = st.number_input("Inserisci Acconto versato", min_value=float(acc_min), value=float(acc_min), key="acc_std")
         
-        # Calcolo Cascata
+        # Sviluppo Cascata
         deb_res_list = []
         for d in lista_debiti_orig:
             scontato = d['valore'] * (1 - sconto_f/100)
@@ -129,13 +129,13 @@ with tab1:
         deb_ordinati = sorted(deb_res_list, key=lambda x: x['res'])
         mesi_t, piani_f, temp_res = 0, {d['id']: [] for d in deb_ordinati}, [d['res'] for d in deb_ordinati]
         
-        while sum(temp_res) > 0.1 and mesi_t < 400:
-            attive = [v for v in temp_res if v > 0]
+        while sum(temp_res) > 0.01 and mesi_t < 500:
+            attive = [v for v in temp_res if v > 0.01]
             if not attive: break
             r_p = rata_scelta / len(attive)
             m_fase = min(attive) / r_p
             for i in range(len(temp_res)):
-                if temp_res[i] > 0:
+                if temp_res[i] > 0.01:
                     piani_f[deb_ordinati[i]['id']].append({"r": round(m_fase), "v": round(r_p, 2)})
                     temp_res[i] -= (r_p * m_fase)
             mesi_t += m_fase
@@ -154,7 +154,6 @@ with tab1:
 with tab2:
     st.markdown("### 🛠️ Simulatore a Velocità Variabile")
     st.write("Questo tool permette di inserire rate manuali (es. per piani a salire o acconti pesanti).")
-    
     col_v1, col_v2, col_v3 = st.columns(3)
     with col_v1:
         n1, i1 = st.number_input("Step 1: N. Rate", 0, value=0), st.number_input("Step 1: Importo (€)", 0.0, value=0.0)
@@ -165,7 +164,6 @@ with tab2:
 
     pagato_m = (n1 * i1) + (n2 * i2)
     res_v = debito_scontato_tot - pagato_m
-    
     if i_f > 0:
         rate_f = max(0.0, res_v / i_f)
         st.info(f"📉 Residuo dopo step manuali: {max(0.0, res_v):,.2f} €")
